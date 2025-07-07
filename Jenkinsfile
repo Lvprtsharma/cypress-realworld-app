@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        nodejs 'NodeJS-18' // Replace with your Node.js installation name
+        nodejs 'NodeJS-20' // Replace with your Node.js installation name
     }
     
     environment {
