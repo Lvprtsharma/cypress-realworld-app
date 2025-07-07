@@ -1,6 +1,10 @@
 pipeline {
     agent any
     
+    tools {
+        nodejs 'NodeJS-18' // Replace with your Node.js installation name
+    }
+    
     environment {
         CI = 'true'
         CYPRESS_CACHE_FOLDER = "${WORKSPACE}/.cypress-cache"
@@ -19,6 +23,8 @@ pipeline {
         
         stage('Install Dependencies') {
             steps {
+                sh 'node --version'
+                sh 'npm --version'
                 sh 'npm ci'
             }
         }
@@ -39,7 +45,7 @@ pipeline {
             steps {
                 script {
                     // Start the application in background
-                    sh 'npm start &'
+                    sh 'nohup npm start > app.log 2>&1 &'
                     
                     // Wait for application to be ready
                     sh 'npx wait-on http://localhost:3000 --timeout 60000'
@@ -70,15 +76,19 @@ pipeline {
             archiveArtifacts artifacts: 'cypress/videos/**/*.mp4', allowEmptyArchive: true
             archiveArtifacts artifacts: 'cypress/screenshots/**/*.png', allowEmptyArchive: true
             
-            // Publish test results
-            publishHTML([
-                allowMissing: false,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: 'cypress/reports',
-                reportFiles: 'index.html',
-                reportName: 'Cypress Test Report'
-            ])
+            // Publish test results - make reports directory optional
+            script {
+                if (fileExists('cypress/reports/index.html')) {
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'cypress/reports',
+                        reportFiles: 'index.html',
+                        reportName: 'Cypress Test Report'
+                    ])
+                }
+            }
             
             // Clean up processes
             sh 'pkill -f "npm start" || true'
@@ -89,7 +99,7 @@ pipeline {
             emailext (
                 subject: "Jenkins Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
                 body: "Build failed. Check console output at ${env.BUILD_URL}",
-                to: "${env.CHANGE_AUTHOR_EMAIL}"
+                to: "your-email@example.com" // Replace with actual email
             )
         }
     }
